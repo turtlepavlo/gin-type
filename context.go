@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -502,6 +503,79 @@ func (c *Context) Delete(key any) {
 //	})
 func (c *Context) Param(key string) string {
 	return c.Params.ByName(key)
+}
+
+// ParamInt returns the URL param for the given key as an int.
+func (c *Context) ParamInt(key string) (int, error) {
+	return strconv.Atoi(c.Param(key))
+}
+
+// ParamInt8 returns the URL param for the given key as an int8.
+func (c *Context) ParamInt8(key string) (int8, error) {
+	value, err := strconv.ParseInt(c.Param(key), 10, 8)
+	return int8(value), err
+}
+
+// ParamInt16 returns the URL param for the given key as an int16.
+func (c *Context) ParamInt16(key string) (int16, error) {
+	value, err := strconv.ParseInt(c.Param(key), 10, 16)
+	return int16(value), err
+}
+
+// ParamInt32 returns the URL param for the given key as an int32.
+func (c *Context) ParamInt32(key string) (int32, error) {
+	value, err := strconv.ParseInt(c.Param(key), 10, 32)
+	return int32(value), err
+}
+
+// ParamInt64 returns the URL param for the given key as an int64.
+func (c *Context) ParamInt64(key string) (int64, error) {
+	return strconv.ParseInt(c.Param(key), 10, 64)
+}
+
+// ParamUint returns the URL param for the given key as a uint.
+func (c *Context) ParamUint(key string) (uint, error) {
+	value, err := strconv.ParseUint(c.Param(key), 10, 0)
+	return uint(value), err
+}
+
+// ParamUint8 returns the URL param for the given key as a uint8.
+func (c *Context) ParamUint8(key string) (uint8, error) {
+	value, err := strconv.ParseUint(c.Param(key), 10, 8)
+	return uint8(value), err
+}
+
+// ParamUint16 returns the URL param for the given key as a uint16.
+func (c *Context) ParamUint16(key string) (uint16, error) {
+	value, err := strconv.ParseUint(c.Param(key), 10, 16)
+	return uint16(value), err
+}
+
+// ParamUint32 returns the URL param for the given key as a uint32.
+func (c *Context) ParamUint32(key string) (uint32, error) {
+	value, err := strconv.ParseUint(c.Param(key), 10, 32)
+	return uint32(value), err
+}
+
+// ParamUint64 returns the URL param for the given key as a uint64.
+func (c *Context) ParamUint64(key string) (uint64, error) {
+	return strconv.ParseUint(c.Param(key), 10, 64)
+}
+
+// ParamFloat32 returns the URL param for the given key as a float32.
+func (c *Context) ParamFloat32(key string) (float32, error) {
+	value, err := strconv.ParseFloat(c.Param(key), 32)
+	return float32(value), err
+}
+
+// ParamFloat64 returns the URL param for the given key as a float64.
+func (c *Context) ParamFloat64(key string) (float64, error) {
+	return strconv.ParseFloat(c.Param(key), 64)
+}
+
+// ParamBool returns the URL param for the given key as a boolean.
+func (c *Context) ParamBool(key string) (bool, error) {
+	return strconv.ParseBool(c.Param(key))
 }
 
 // AddParam adds param to context and

@@ -3352,6 +3352,113 @@ func TestContextAddParam(t *testing.T) {
 	assert.Equal(t, value, v)
 }
 
+func TestContextParamTyped(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		call  func(*Context) (any, error)
+		want  any
+	}{
+		{
+			name:  "int",
+			value: "42",
+			call:  func(c *Context) (any, error) { return c.ParamInt("value") },
+			want:  42,
+		},
+		{
+			name:  "int8",
+			value: "127",
+			call:  func(c *Context) (any, error) { return c.ParamInt8("value") },
+			want:  int8(127),
+		},
+		{
+			name:  "int16",
+			value: "32767",
+			call:  func(c *Context) (any, error) { return c.ParamInt16("value") },
+			want:  int16(32767),
+		},
+		{
+			name:  "int32",
+			value: "2147483647",
+			call:  func(c *Context) (any, error) { return c.ParamInt32("value") },
+			want:  int32(2147483647),
+		},
+		{
+			name:  "int64",
+			value: "9223372036854775807",
+			call:  func(c *Context) (any, error) { return c.ParamInt64("value") },
+			want:  int64(9223372036854775807),
+		},
+		{
+			name:  "uint",
+			value: "42",
+			call:  func(c *Context) (any, error) { return c.ParamUint("value") },
+			want:  uint(42),
+		},
+		{
+			name:  "uint8",
+			value: "255",
+			call:  func(c *Context) (any, error) { return c.ParamUint8("value") },
+			want:  uint8(255),
+		},
+		{
+			name:  "uint16",
+			value: "65535",
+			call:  func(c *Context) (any, error) { return c.ParamUint16("value") },
+			want:  uint16(65535),
+		},
+		{
+			name:  "uint32",
+			value: "4294967295",
+			call:  func(c *Context) (any, error) { return c.ParamUint32("value") },
+			want:  uint32(4294967295),
+		},
+		{
+			name:  "uint64",
+			value: "18446744073709551615",
+			call:  func(c *Context) (any, error) { return c.ParamUint64("value") },
+			want:  uint64(18446744073709551615),
+		},
+		{
+			name:  "float32",
+			value: "2.5",
+			call:  func(c *Context) (any, error) { return c.ParamFloat32("value") },
+			want:  float32(2.5),
+		},
+		{
+			name:  "float64",
+			value: "2.5",
+			call:  func(c *Context) (any, error) { return c.ParamFloat64("value") },
+			want:  float64(2.5),
+		},
+		{
+			name:  "bool",
+			value: "true",
+			call:  func(c *Context) (any, error) { return c.ParamBool("value") },
+			want:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Context{Params: Params{{Key: "value", Value: tt.value}}}
+			got, err := tt.call(c)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestContextParamTypedErrors(t *testing.T) {
+	c := &Context{Params: Params{{Key: "value", Value: "nope"}}}
+	_, err := c.ParamInt("value")
+	assert.Error(t, err)
+
+	c = &Context{Params: Params{{Key: "value", Value: "-1"}}}
+	_, err = c.ParamUint("value")
+	assert.Error(t, err)
+}
+
 func TestCreateTestContextWithRouteParams(t *testing.T) {
 	w := httptest.NewRecorder()
 	engine := New()
