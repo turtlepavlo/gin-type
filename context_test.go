@@ -274,6 +274,62 @@ func TestSaveUploadedFileWithPermissionFailed(t *testing.T) {
 	require.Error(t, c.SaveUploadedFile(f, "test/permission_test", mode))
 }
 
+func TestSaveUploadedFileWithRoot(t *testing.T) {
+	rootDir := t.TempDir()
+	root, err := os.OpenRoot(rootDir)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, root.Close())
+	})
+
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	w, err := mw.CreateFormFile("file", "test")
+	require.NoError(t, err)
+	_, err = w.Write([]byte("test"))
+	require.NoError(t, err)
+	mw.Close()
+
+	c, _ := CreateTestContext(httptest.NewRecorder())
+	c.engine.SetFileRoot(root)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/", buf)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+	f, err := c.FormFile("file")
+	require.NoError(t, err)
+
+	dst := filepath.Join("subdir", "test")
+	require.NoError(t, c.SaveUploadedFile(f, dst))
+	_, err = os.Stat(filepath.Join(rootDir, dst))
+	require.NoError(t, err)
+}
+
+func TestSaveUploadedFileWithRootRejectsEscape(t *testing.T) {
+	rootDir := t.TempDir()
+	root, err := os.OpenRoot(rootDir)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, root.Close())
+	})
+
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	w, err := mw.CreateFormFile("file", "test")
+	require.NoError(t, err)
+	_, err = w.Write([]byte("test"))
+	require.NoError(t, err)
+	mw.Close()
+
+	c, _ := CreateTestContext(httptest.NewRecorder())
+	c.engine.SetFileRoot(root)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/", buf)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+	f, err := c.FormFile("file")
+	require.NoError(t, err)
+
+	dst := filepath.Join("..", "escape")
+	require.Error(t, c.SaveUploadedFile(f, dst))
+}
+
 func TestContextReset(t *testing.T) {
 	router := New()
 	c := router.allocateContext(0)
