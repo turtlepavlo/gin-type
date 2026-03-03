@@ -166,6 +166,11 @@ type Engine struct {
 	// method call.
 	MaxMultipartMemory int64
 
+	// fileRoot constrains file operations performed by Context.SaveUploadedFile.
+	// If nil, SaveUploadedFile uses regular OS operations.
+	// Caller is responsible for closing the root.
+	fileRoot *os.Root
+
 	// UseH2C enable h2c support.
 	UseH2C bool
 
@@ -320,6 +325,12 @@ func (engine *Engine) SetHTMLTemplate(templ *template.Template) {
 // SetFuncMap sets the FuncMap used for template.FuncMap.
 func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
 	engine.FuncMap = funcMap
+}
+
+// SetFileRoot sets the root directory used by Context.SaveUploadedFile.
+// If root is nil, SaveUploadedFile uses regular OS operations.
+func (engine *Engine) SetFileRoot(root *os.Root) {
+	engine.fileRoot = root
 }
 
 // NoRoute adds handlers for NoRoute. It returns a 404 code by default.

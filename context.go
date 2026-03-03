@@ -717,6 +717,37 @@ func (c *Context) MultipartForm() (*multipart.Form, error) {
 
 // SaveUploadedFile uploads the form file to specific dst.
 func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string, perm ...fs.FileMode) error {
+	if c != nil && c.engine != nil && c.engine.fileRoot != nil {
+		if err := validateRootDestination(dst); err != nil {
+			return err
+		}
+		return saveUploadedFileWithRoot(file, c.engine.fileRoot, dst, perm...)
+	}
+	return saveUploadedFile(file, dst, perm...)
+}
+
+func validateRootDestination(dst string) error {
+	if dst == "" {
+		return &fs.PathError{Op: "save", Path: dst, Err: fs.ErrInvalid}
+	}
+	if filepath.IsAbs(dst) || filepath.VolumeName(dst) != "" {
+		return &fs.PathError{Op: "save", Path: dst, Err: fs.ErrInvalid}
+	}
+	clean := filepath.Clean(dst)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return &fs.PathError{Op: "save", Path: dst, Err: fs.ErrInvalid}
+	}
+	return nil
+}
+
+func sanitizeRootMode(mode os.FileMode) os.FileMode {
+	if mode&0o777 != mode {
+		return mode & 0o777
+	}
+	return mode
+}
+
+func saveUploadedFile(file *multipart.FileHeader, dst string, perm ...fs.FileMode) error {
 	src, err := file.Open()
 	if err != nil {
 		return err
@@ -736,6 +767,38 @@ func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string, perm 
 	}
 
 	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, src)
+	return err
+}
+
+func saveUploadedFileWithRoot(file *multipart.FileHeader, root *os.Root, dst string, perm ...fs.FileMode) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	var mode os.FileMode = 0o750
+	if len(perm) > 0 {
+		mode = perm[0]
+	}
+	mode = sanitizeRootMode(mode)
+
+	if dir := filepath.Dir(dst); dir != "." {
+		if err = root.MkdirAll(dir, mode); err != nil {
+			return err
+		}
+		if err = root.Chmod(dir, mode); err != nil {
+			return err
+		}
+	}
+
+	out, err := root.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 	if err != nil {
 		return err
 	}
