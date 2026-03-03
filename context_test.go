@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -233,6 +234,10 @@ func TestSaveUploadedCreateFailed(t *testing.T) {
 }
 
 func TestSaveUploadedFileWithPermission(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod semantics differ on windows")
+	}
+
 	buf := new(bytes.Buffer)
 	mw := multipart.NewWriter(buf)
 	w, err := mw.CreateFormFile("file", "permission_test")
@@ -327,6 +332,38 @@ func TestSaveUploadedFileWithRootRejectsEscape(t *testing.T) {
 	require.NoError(t, err)
 
 	dst := filepath.Join("..", "escape")
+	require.Error(t, c.SaveUploadedFile(f, dst))
+}
+
+func TestSaveUploadedFileWithRootRejectsAbsPath(t *testing.T) {
+	rootDir := t.TempDir()
+	root, err := os.OpenRoot(rootDir)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, root.Close())
+	})
+
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	w, err := mw.CreateFormFile("file", "test")
+	require.NoError(t, err)
+	_, err = w.Write([]byte("test"))
+	require.NoError(t, err)
+	mw.Close()
+
+	c, _ := CreateTestContext(httptest.NewRecorder())
+	c.engine.SetFileRoot(root)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/", buf)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+	f, err := c.FormFile("file")
+	require.NoError(t, err)
+
+	var dst string
+	if runtime.GOOS == "windows" {
+		dst = filepath.Join(rootDir, "abs")
+	} else {
+		dst = filepath.Join(string(os.PathSeparator), "abs")
+	}
 	require.Error(t, c.SaveUploadedFile(f, dst))
 }
 

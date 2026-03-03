@@ -304,8 +304,10 @@ func TestFileDescriptor(t *testing.T) {
 	require.NoError(t, err)
 	socketFile, err := listener.File()
 	if isWindows() {
-		// not supported by windows, it is unimplemented now
-		require.Error(t, err)
+		// On some Windows/Go versions this may be unsupported; skip if so.
+		if err != nil {
+			t.Skip("listener.File not supported on Windows")
+		}
 	} else {
 		require.NoError(t, err)
 	}
